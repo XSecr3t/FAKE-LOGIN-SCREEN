@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Entry Simulation</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      color: #00ff00;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #loginBox {
+  padding: 10px;
+  font-size: 13px;
+  max-width: 360px;
+      background-color: #111;
+      border: 1px solid #00ff00;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: left;
+      min-width: 180px;
+      margin-bottom: 40px;
+      box-shadow: 0 0 10px #00ff00;
+    }
+
+    #fakeUsernameBox, #fakePasswordBox {
+  font-size: 12px;
+  padding: 4px;
+  margin-top: 2px;
+  min-width: 180px;
+      font-size: 12px;
+      font-family: monospace;
+      border: 1px solid #00ff00;
+      background: black;
+      color: #00ff00;
+      padding: 4px;
+      margin-top: 5px;
+      min-height: 1em;
+      white-space: nowrap;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #fakeUsernameCursor::after {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 10px;
+      background: #00ff00;
+      animation: blink 1s step-start infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    #unlockLogo {
+      width: 180px;
+      opacity: 0.2;
+      pointer-events: none;
+      transition: all 0.5s ease;
+      cursor: not-allowed;
+    }
+
+    #unlockLogo.ready {
+      opacity: 1;
+      pointer-events: auto;
+      cursor: pointer;
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { filter: brightness(100%); }
+      50% { filter: brightness(200%); }
+    }
+
+    #volumeControl {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      color: #00ff00;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 10000;
+    }
+
+    #volumeControl input {
+      vertical-align: middle;
+    }
+  
+#logoWrapper {
+  position: relative;
+  display: inline-block;
+}
+#clickCursor {
+  transition: opacity 0.4s ease-in-out;
+
+  position: absolute;
+  top: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  animation: bounce 1.2s infinite;
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-6px); }
+}
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, 10px);
+  color: #00ff00;
+  font-size: 12px;
+  font-family: monospace;
+  opacity: 0;
+  animation: fadeBlink 1s infinite;
+  pointer-events: none;
+}
+@keyframes fadeBlink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+<div id="loginBox">
+
+  <label for="fakeUsername">Username:</label>
+  <div id="fakeUsernameBox">
+    <span id="fakeUsernameCursor"></span>
+  </div>
+  <div style="height: 6px;"></div>
+
+    <label for="fakePassword">Password:</label>
+    <div id="fakePasswordBox">
+      
+    </div>
+  </div>
+
+  <div id="logoWrapper"><img id="unlockLogo" src="https://i.imgur.com/GpHkrdL.gif" alt="Locked Logo" />
+
+  </div>
+
+  
+<div id="clickCursor">
+  👆
+</div>
+  <audio id="welcomeAudio" src="https://archive.org/download/sound-effect-welcome/welcome.mp3" preload="auto"></audio>
+  <audio id="accessGrantedAudio" src="https://archive.org/download/accessgranted-soundeffect/AccessGranted.mp3" preload="auto"></audio>
+  <audio id="bgMusic" src="https://archive.org/download/ambient-bgm/ambient-bgm.mp3" preload="auto" loop></audio>
+
+  <div id="volumeControl">
+    🔊 Volume: <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+  </div>
+
+  
+<script>
+	document.addEventListener("DOMContentLoaded", () => {
+  const usernameText = "Mr.XSecr3t";
+  const passwordText = "●●●●●●●●";
+  const fakeUsernameBox = document.getElementById("fakeUsernameBox");
+  const fakePasswordBox = document.getElementById("fakePasswordBox");
+  const usernameCursor = document.getElementById("fakeUsernameCursor");
+  const passwordBox = document.getElementById("fakePasswordBox");
+  const passwordCursor = document.getElementById("fakePasswordCursor");
+  const logo = document.getElementById("unlockLogo");
+  const welcomeAudio = document.getElementById("welcomeAudio");
+  const bgMusic = document.getElementById("bgMusic");
+  const volumeSlider = document.getElementById("volumeSlider");
+
+  let iU = 0;
+  const typingUsername = setInterval(() => {
+    const char = document.createTextNode(usernameText.charAt(iU));
+    fakeUsernameBox.insertBefore(char, usernameCursor);
+    iU++;
+    if (iU >= usernameText.length) {
+      clearInterval(typingUsername);
+      usernameCursor.remove();
+
+      setTimeout(() => {
+        let i = 0;
+        const typingPassword = setInterval(() => {
+          const char = document.createTextNode(passwordText.charAt(i));
+          fakePasswordBox.insertBefore(char, passwordCursor);
+          i++;
+          if (i >= passwordText.length) {
+            clearInterval(typingPassword);
+
+            const initText = document.createElement("div");
+            initText.textContent = "Initializing login info";
+            initText.style.marginTop = "10px";
+            initText.style.fontSize = "12px";
+            initText.style.fontStyle = "italic";
+            initText.style.color = "#00ff00";
+            document.getElementById("loginBox").appendChild(initText);
+
+            const dots = document.createElement("span");
+            dots.id = "dots";
+            initText.appendChild(dots);
+            let dotCount = 0;
+            const dotInterval = setInterval(() => {
+              dotCount = (dotCount + 1) % 4;
+              dots.textContent = '.'.repeat(dotCount);
+            }, 500);
+
+            setTimeout(() => {
+              clearInterval(dotInterval);
+              initText.remove();
+
+              const grantedText = document.createElement("div");
+              grantedText.textContent = "ACCESS GRANTED!";
+              grantedText.style.margin = "20px auto 10px";
+              grantedText.style.textAlign = "center";
+              grantedText.style.fontWeight = "bold";
+              grantedText.style.color = "#00ff00";
+              grantedText.style.fontSize = "16px";
+              document.getElementById("loginBox").appendChild(grantedText);
+              document.getElementById("accessGrantedAudio").play();
+
+              setTimeout(() => {
+                logo.classList.add("ready");
+              setTimeout(() => { document.getElementById("clickCursor").style.opacity = 1; }, 100);
+              }, 1500);
+            }, 5000);
+          }
+        }, 200);
+      }, 500);
+    }
+  }, 200);
+
+  logo.addEventListener("click", () => {
+    if (logo.classList.contains("ready")) {
+      welcomeAudio.play();
+      setTimeout(() => {
+        bgMusic.volume = parseFloat(volumeSlider.value);
+        bgMusic.play();
+      }, 2000);
+    }
+  });
+
+  volumeSlider.addEventListener("input", (e) => {
+    bgMusic.volume = parseFloat(e.target.value);
+  });
+});
+</script>
+<script>
+    const usernameText = "Mr.XSecr3t";
+    const passwordText = "●●●●●●●●";
+    const fakePasswordBox = document.getElementById("fakePasswordBox");
+    const fakeUsernameBox = document.getElementById("fakeUsernameBox");
+    const usernameCursor = document.getElementById("fakeUsernameCursor");
+  const passwordBox = document.getElementById("fakePasswordBox");
+    const cursor = document.getElementById("fakePasswordCursor");
+    const logo = document.getElementById("unlockLogo");
+    const welcomeAudio = document.getElementById("welcomeAudio");
+    const bgMusic = document.getElementById("bgMusic");
+    const volumeSlider = document.getElementById("volumeSlider");
+
+    let i = 0;
+    setTimeout(() => {
+  const typing = setInterval(() => {
+      const char = document.createTextNode(passwordText.charAt(i));
+      fakePasswordBox.insertBefore(char, cursor);
+      i++;
+      if (i >= passwordText.length) {
+    clearInterval(typing);
+    const initText = document.createElement("div");
+    initText.textContent = "Initializing login info";
+    const dots = document.createElement("span");
+    dots.id = "dots";
+    initText.appendChild(dots);
+    let dotCount = 0;
+    const dotInterval = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      dots.textContent = '.'.repeat(dotCount);
+    }, 500);
+    setTimeout(() => clearInterval(dotInterval), 5000);
+    initText.style.marginTop = "10px";
+    initText.style.fontSize = "12px";
+    initText.style.fontStyle = "italic";
+    initText.style.color = "#00ff00";
+    document.getElementById("loginBox").appendChild(initText);
+    setTimeout(() => {
+      document.getElementById("loginBox").removeChild(initText);
+      const grantedText = document.createElement("div");
+      grantedText.textContent = "ACCESS GRANTED!";
+      grantedText.style.margin = "20px auto 10px";
+      grantedText.style.textAlign = "center";
+      grantedText.style.fontWeight = "bold";
+      grantedText.style.color = "#00ff00";
+      grantedText.style.fontSize = "16px";
+      document.getElementById("loginBox").appendChild(grantedText);
+              document.getElementById("accessGrantedAudio").play();
+
+      setTimeout(() => {
+        logo.classList.add("ready");
+              setTimeout(() => { document.getElementById("clickCursor").style.opacity = 1; }, 100);
+        } // end password typing
+      }, 1500);
+    }, 5000);
+
+        clearInterval(typing);
+        logo.classList.add("ready");
+              setTimeout(() => { document.getElementById("clickCursor").style.opacity = 1; }, 100);
+        } // end password typing
+      }
+    }, 200); // typing password
+}, 2000);
+
+    logo.addEventListener("click", () => {
+      if (logo.classList.contains("ready")) {
+        welcomeAudio.play();
+        setTimeout(() => {
+          bgMusic.volume = parseFloat(volumeSlider.value);
+          bgMusic.play();
+        }, 2000);
+      }
+    });
+
+    volumeSlider.addEventListener("input", (e) => {
+      bgMusic.volume = parseFloat(e.target.value);
+    });
+  </script>
+</body>
+</html>
